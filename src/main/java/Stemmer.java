@@ -1,4 +1,3 @@
-import lombok.Getter;
 import opennlp.tools.stemmer.PorterStemmer;
 
 import java.util.*;
@@ -11,7 +10,6 @@ public class Stemmer {
     private final byte ONCE_STEMS_INDEX = 2;
     private final byte AVG_STEMS_DOC_INDEX = 3;
 
-    @Getter
     private Map<String, List<String>> stemMap;
 
     private PorterStemmer porterStemmer;
@@ -19,6 +17,10 @@ public class Stemmer {
     public Stemmer() {
         this.stemMap = new HashMap<>();
         porterStemmer = new PorterStemmer();
+    }
+
+    public Map<String, List<String>> getStemMap() {
+        return this.stemMap;
     }
 
     public void stem(Map<String, List<String>> tokenMap) {
@@ -32,38 +34,38 @@ public class Stemmer {
         });
     }
 
-    private double[] generateStemmerStats(Map<String, List<String>> tokenMap, Map<String, Integer> top30Tokens) {
+    private double[] generateStemmerStats(Map<String, List<String>> tokenMap, Map<String, Integer> top30Stems) {
         double[] stats = {0.0, 0.0, 0.0, 0.0};
-        HashMap<String, Integer> token2Frequency = new HashMap<>();
+        HashMap<String, Integer> stem2Frequency = new HashMap<>();
         for(String document: tokenMap.keySet()) {
             stats[TOTAL_STEMS_INDEX] += tokenMap.get(document).size();
             for(String token: tokenMap.get(document)) {
-                if(token2Frequency.containsKey(token)) {
-                    token2Frequency.put(token, token2Frequency.get(token) + 1);
+                if(stem2Frequency.containsKey(token)) {
+                    stem2Frequency.put(token, stem2Frequency.get(token) + 1);
                 }
                 else {
-                    token2Frequency.put(token, 1);
+                    stem2Frequency.put(token, 1);
                 }
             }
         }
         stats[AVG_STEMS_DOC_INDEX] = stats[TOTAL_STEMS_INDEX] / tokenMap.size();
-        stats[UNIQUE_STEMS_INDEX] = token2Frequency.size();
+        stats[UNIQUE_STEMS_INDEX] = stem2Frequency.size();
         Map<String, Integer> sortedMap =
-                token2Frequency.entrySet()
+                stem2Frequency.entrySet()
                         .stream()
-                        .sorted(Map.Entry.comparingByValue())
+                        .sorted(Map.Entry.comparingByValue((o1, o2) -> -o1.compareTo(o2)))
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                                 (e1, e2) -> e1, LinkedHashMap::new));
-        int counter = sortedMap.size();
+        int counter = 0;
         for(String key: sortedMap.keySet()) {
             Integer value = sortedMap.get(key);
             if(value == 1.0) {
                 stats[ONCE_STEMS_INDEX] += 1;
             }
-            if(counter <= 30) {
-                top30Tokens.put(key, value);
+            if(counter < 30) {
+                top30Stems.put(key, value);
             }
-            counter--;
+            counter++;
         }
         return stats;
     }
@@ -77,11 +79,19 @@ public class Stemmer {
         stemmer.stem(tokenMap);
         Map<String, Integer> top30Stems = new LinkedHashMap<>();
         double[] stats = stemmer.generateStemmerStats(stemmer.stemMap, top30Stems);
-        System.out.println("Number of tokens: " + stats[stemmer.TOTAL_STEMS_INDEX]);;
-        System.out.println("Number of unique tokens: " + stats[stemmer.UNIQUE_STEMS_INDEX]);;
-        System.out.println("Number of words which occur only once: " + stats[stemmer.ONCE_STEMS_INDEX]);
-        System.out.println("Average number of word tokens: " + stats[stemmer.AVG_STEMS_DOC_INDEX]);
-        System.out.println("Top 30 frequent tokens are: ");
-        top30Stems.forEach((key, value) -> System.out.println(key + ": " + value));
+        stemmer.prettyPrintStatistics(stats, top30Stems);
+    }
+
+    private void prettyPrintStatistics(double[] stats, Map<String, Integer> top30StemsMap) {
+        System.out.println("\n\n");
+        System.out.format("%60s%n", "Stemming Statistics");
+        System.out.format("%75s%n", "------------------------------------------------------");
+        System.out.format("%25s%13s%35s%n", "No.", "Statistic", "Value");
+        System.out.format("%25s%19s%30.0f%n", "1.", "Number of stems", stats[TOTAL_STEMS_INDEX]);
+        System.out.format("%25s%26s%23.0f%n", "2.", "Number of unique stems", stats[UNIQUE_STEMS_INDEX]);
+        System.out.format("%25s%41s%8.0f%n", "3.", "Number of stems which occur only once", stats[ONCE_STEMS_INDEX]);
+        System.out.format("%25s%32s%20.2f%n", "4.", "Average number of word stems", stats[AVG_STEMS_DOC_INDEX]);
+        System.out.format("%25s%29s%n", "5.", "Top 30 frequent stems are");
+        top30StemsMap.forEach((key, value) -> System.out.format("%30s%1s%"+ (47 - ((String)key).length() - 3) + "d%n", "-", key, value));
     }
 }
