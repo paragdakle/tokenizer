@@ -50,13 +50,19 @@ public class Tokenizer {
 
     public static void main(String[] args) {
 
+        if(args.length == 0 || args[0].isEmpty()) {
+            System.out.println("Error: Invalid number of arguments found!");
+            System.out.println("Expected:");
+            System.out.println("java Tokenizer <corpus_dir_path>");
+            System.exit(0);
+        }
         long time = System.currentTimeMillis();
         Tokenizer tokenizer = new Tokenizer();
-        tokenizer.tokenize("data/", tokenizer.filter, true);
+        tokenizer.tokenize(args[0], tokenizer.filter, true);
         Map<String, Integer> top30Tokens = new LinkedHashMap<>();
         double[] stats = tokenizer.generateTokenizerStats(tokenizer.tokenMap, top30Tokens);
-        tokenizer.prettyPrintStatistics(stats, top30Tokens);
-        System.out.println(System.currentTimeMillis() - time);
+        long executionTime = System.currentTimeMillis() - time;
+        tokenizer.prettyPrintStatistics(stats, top30Tokens, executionTime);
     }
 
     private double[] generateTokenizerStats(Map<String, List<String>> tokenMap, Map<String, Integer> top30Tokens) {
@@ -95,8 +101,7 @@ public class Tokenizer {
         return stats;
     }
 
-    private void prettyPrintStatistics(double[] stats, Map<String, Integer> top30TokensMap) {
-        System.out.println("\n\n");
+    private void prettyPrintStatistics(double[] stats, Map<String, Integer> top30TokensMap, long timeDiff) {
         System.out.format("%60s%n", "Tokenization Statistics");
         System.out.format("%75s%n", "------------------------------------------------------");
         System.out.format("%25s%12s%36s%n", "No.", "Statistic", "Value");
@@ -106,5 +111,6 @@ public class Tokenizer {
         System.out.format("%25s%32s%20.2f%n", "4.", "Average number of word tokens", stats[AVG_WORDS_DOC_INDEX]);
         System.out.format("%25s%29s%n", "5.", "Top 30 frequent tokens are");
         top30TokensMap.forEach((key, value) -> System.out.format("%29s%1s%"+ (48 - ((String)key).length() - 3) + "d%n", "-", key, value));
+        System.out.format("%25s%30s%22.2fs%n", "6.", "Time taken for tokenization", (timeDiff * 1.0)/1000.0);
     }
 }

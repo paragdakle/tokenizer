@@ -72,9 +72,15 @@ public class Stemmer {
 
     public static void main(String[] args) {
 
+        if(args.length == 0 || args[0].isEmpty()) {
+            System.out.println("Error: Invalid number of arguments found!");
+            System.out.println("Expected:");
+            System.out.println("java Stemmer <corpus_dir_path>");
+            System.exit(0);
+        }
         Stemmer stemmer = new Stemmer();
         Tokenizer tokenizer = new Tokenizer();
-        tokenizer.tokenize("data/", tokenizer.getFilter(), true);
+        tokenizer.tokenize(args[0], tokenizer.getFilter(), true);
         Map<String, List<String>> tokenMap = tokenizer.getTokenMap();
         stemmer.stem(tokenMap);
         Map<String, Integer> top30Stems = new LinkedHashMap<>();
@@ -83,7 +89,6 @@ public class Stemmer {
     }
 
     private void prettyPrintStatistics(double[] stats, Map<String, Integer> top30StemsMap) {
-        System.out.println("\n\n");
         System.out.format("%60s%n", "Stemming Statistics");
         System.out.format("%75s%n", "------------------------------------------------------");
         System.out.format("%25s%13s%35s%n", "No.", "Statistic", "Value");
